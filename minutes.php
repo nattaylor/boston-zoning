@@ -1,4 +1,6 @@
 <?php
+
+include('assessing.php');
 /**
  *
  * TODO
@@ -69,8 +71,9 @@ function parseMinutesPage() {
 		}
 	}
 	$parsedCases = array_filter($parsedCases, function($case) {return strlen(json_encode( $case )) > 0;});
-	echo "[".implode(",".PHP_EOL, array_map(function($case) {return json_encode( array_map(function($case1){return rtrim(str_replace(["`", "\n", "\"", " ", "\\"], " ", $case1),"\\");}, $case) );}, $parsedCases))."]";
-	//checkCases($parsedCases);
+	//echo "[".implode(",".PHP_EOL, array_map(function($case) {return json_encode( array_map(function($case1){return rtrim(str_replace(["`", "\n", "\"", " ", "\\"], " ", $case1),"\\");}, $case) );}, $parsedCases))."]";
+	checkCases($parsedCases);
+	findParcels($parsedCases);
 }
 
 function parseCase($caseStr) {
@@ -184,13 +187,13 @@ function specialCases($caseStr) {
 		"BOA879862 Address: 60-62 Mapleton Street Ward 22 Applicant: Matthew Murphy" =>
 			["BOA-879862", "60-62 Mapleton Street", "22", "Matthew Murphy"],
 		"BOA842247- Address: 75-77 Cedar Street , Ward 11 Applicant: Ulyen Coleman" =>
-			["BOA-842247", "75-77 Cedar Street ,", "11", "Ulyen Coleman"],
+			["BOA-842247", "75-77 Cedar Street", "11", "Ulyen Coleman"],
 		"BOA842247- Address: 75-77 Cedar Street , Ward 11 Applicant: Ulyen Coleman" =>
-			["BOA-842247", "75-77 Cedar Street ,", "11", "Ulyen Coleman"],
+			["BOA-842247", "75-77 Cedar Street", "11", "Ulyen Coleman"],
 		"BZC-30461 Address: 191 Talbot Avenue, Ward , Applicant: Derric Small, Esq" =>
-			["BZC-30461", "191 Talbot Avenue,", "15", "Derric Small, Esq"],
+			["BZC-30461", "191 Talbot Avenue", "15", "Derric Small, Esq"],
 		"BOA-859199 Address:59 Blake Street , Ward 18, Applicant: Derric Small" =>
-			["BOA-859199", "59 Blake Street ,", "18", "Derric Small"],
+			["BOA-859199", "59 Blake Street", "18", "Derric Small"],
 		"BOA-853982 Address:114 Bennington Street , Ward 1, Applicant: Michael Romano" =>
 			["BOA-853982", "114 Bennington Street", "1", "Michael Romano"],
 		"BOA-,810527 Address: 694 East Fifth Street Ward: 6 , Applicant: Lindsay Bennett" =>
@@ -204,25 +207,25 @@ function specialCases($caseStr) {
 		"BOA-779357, Address:29-31 Ward Street , Ward 7 Applicant: 29-31 Ward Street LLC" =>
 			["BOA-779357,", "29-31 Ward Street", "7", "29-31 Ward Street LLC"],
 		"BOA-488299, Address:358-360 Athens Street , Ward 6 Applicant: Ann Marie Bayer," =>
-			["BOA-488299", "358-360 Athens Street ,", "6", "Ann Marie Bayer,"],
+			["BOA-488299", "358-360 Athens Street", "6", "Ann Marie Bayer,"],
 		"BOA-812233 Address:15-17 Swallow Street Ward 6 Applicant: Brendon O'Heir" =>
 			["BOA-812233", "15-17 Swallow Street", "6", "Brendon O'Heir"],
 		"BOA-,803912 Address: 29 Minot Street Ward: 16 , Applicant: Linda Lombardi" =>
 			["BOA-803912", "29 Minot Street", "16", "Linda Lombardi"],
 		"BOA-818470 Address: 85-93 Glenville Avenue, Ward 21 Applicants: Daniel Toscano, Esq." =>
-			["BOA-818470", "85-93 Glenville Avenu,", "21", "Daniel Toscano, Esq."],
+			["BOA-818470", "85-93 Glenville Avenu", "21", "Daniel Toscano, Esq."],
 		"BOA-812908 Address:537A-537 Columbus Avenue , Ward 4 Applicant: Leo Papile" =>
-			["BOA-812908", "537A-537 Columbus Avenue ,", "4", "Leo Papile"],
+			["BOA-812908", "537A-537 Columbus Avenue", "4", "Leo Papile"],
 		"BOA-806243, Address:23-25 Bowdoin Avenue , Ward 14 Applicant: James Christopher" =>
-			["BOA-806243", "23-25 Bowdoin Avenue ,", "14", "James Christopher"],
+			["BOA-806243", "23-25 Bowdoin Avenue", "14", "James Christopher"],
 		"BOA-779357, Address:29-31 Ward Street , Ward 7 Applicant: 29-31 Ward Street LLC" =>
 			["BOA-779357", "29-31 Ward Street", "7", "29-31 Ward Street LLC"],
 		"BOA-,813658 Address: 76 White Street , Ward 1 Applicant: Smith &amp; Townsend LLC" =>
-			["BOA-813658", "76 White Street ,", "1", "Smith &amp; Townsend LLC"],
+			["BOA-813658", "76 White Street", "1", "Smith &amp; Townsend LLC"],
 		"BOA-805721, Address: 66 Edson Street, Ward 17" =>
-			["BOA-805721", "66 Edson Street,", "17", ""],
+			["BOA-805721", "66 Edson Street", "17", ""],
 		"BOA-,787613 Address: 18 Marbury Terrace , Ward 11 Applicant: Marbury Terrace, Inc." =>
-			["BOA-787613", "18 Marbury Terrace ,", "11", "Marbury Terrace, Inc."]
+			["BOA-787613", "18 Marbury Terrace", "11", "Marbury Terrace, Inc."]
 	];
 	$split = explode("\n", $caseStr, 2);
 	$first = $split[0];
@@ -246,6 +249,107 @@ function checkCases($cases) {
 	}
 }
 
-try {parseMinutesPage();} catch (Exception $e) {
+/**
+ * @todo east west
+ * 
+ * @param  [type] $parsedCases [description]
+ * @return [type]              [description]
+ */
+function findParcels($parsedCases) {
+	$abbreviations = array_values([
+		'ST' => 'street',
+		'AV' => 'avenue',
+		'RD' => 'road',
+		'PL' => 'place',
+		'TE' => 'terrace',
+		'PK' => 'park',
+		'SQ' => 'square',
+		'CT' => 'court',
+		'DR' => 'drive',
+		'WY' => 'way',
+		'HW' => 'highway',
+		'PZ' => 'plaza',
+		'LA' => 'lane'
+		/*
+		'RO' => '',
+		'PW' => '',
+		'BL' => '',
+		'CI' => '',
+		'WH' => '',
+		'CC' => '',
+		'CR' => '',
+		'RD' => '',
+		'FW' => ''
+		*/
+	]);
+	$revAbbr = [];
+	foreach([
+		'ST' => 'street',
+		'AV' => 'avenue',
+		'RD' => 'road',
+		'PL' => 'place',
+		'TE' => 'terrace',
+		'PK' => 'park',
+		'SQ' => 'square',
+		'CT' => 'court',
+		'DR' => 'drive',
+		'WY' => 'way',
+		'HW' => 'highway',
+		'PZ' => 'plaza',
+		'LA' => 'lane'
+		/*
+		'RO' => '',
+		'PW' => '',
+		'BL' => '',
+		'CI' => '',
+		'WH' => '',
+		'CC' => '',
+		'CR' => '',
+		'RD' => '',
+		'FW' => ''
+		*/
+	] as $k=>$v) {
+		$revAbbr[$v] = strtolower($k);
+	}
+	$parcels = Parcels::load('fy19fullpropassess.csv');
+	foreach($parsedCases as $case) {
+		//echo "Searching for {$case['address']}".PHP_EOL;
+		list($stNum, $remaining) = explode(" ", $case["address"], 2);
+		$split = preg_split('/ (street|avenue|road|place|terrace|park|square|court|drive|way|highway|plaza|lane)$/', strtolower($remaining), 0, PREG_SPLIT_DELIM_CAPTURE);
+		$stName = $split[0];
+		$stSuf = $split[1] ?? '';
+		$stNum = preg_replace('/([0-9]+).*/', '$1', $stNum);
+		
+		
+
+		$parcelId = False;
+		$key = implode(" ", [$stNum, $stName, $revAbbr[$stSuf] ?? '']);
+		if(array_key_exists($key,$parcels)) {
+			$parcelId = $parcels[$key];
+		}
+		/*
+		foreach($parcels as $parcel) {
+			//echo var_dump($parcel, [$stNum, $stName, $revAbbr[$stSuf]]);
+			if($parcel[1] == $stNum && $parcel[2] == $stName && $parcel[3] == $revAbbr[$stSuf]) {
+				$parcelId = $parcel;
+				//echo var_dump($parcel, [$stNum, $stName, $stSuf]);
+			} else {
+
+			}
+ 		}
+ 		*/
+ 		if(!$parcelId) {
+ 			echo "No match for {$case['address']} with key: $key".PHP_EOL;
+ 		} else {
+ 			//echo "Found $parcelId for {$case['address']}".PHP_EOL;
+ 		}
+
+	}
+	
+}
+
+try {
+	parseMinutesPage();
+} catch (Exception $e) {
 	echo $e->getMessage().PHP_EOL;
 }
