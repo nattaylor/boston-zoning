@@ -1,6 +1,4 @@
 <?php
-
-include('assessing.php');
 /**
  *
  * TODO
@@ -9,32 +7,37 @@ include('assessing.php');
  * @return [type] [description]
  */
 class MinutesParser {
+	private $filename;
 	public function main() {
-		global $filename;
 		//$minutes = file_get_contents("https://www.boston.gov/departments/inspectional-services/zoning-board-appeal");
-		$minutes = file_get_contents("zoning-board-appeal");
-		if(!preg_match_all('/href="(\/sites[^>]+\.pdf)"/sm', $minutes, $matches)) {
+		$minutesPage = file_get_contents("cache/zoning-board-appeal");
+		if(!preg_match_all('/href="(\/sites[^>]+\.pdf)"/sm', $minutesPage, $matches)) {
 		}
 		$parsedCases = [];
-		//foreach(array_slice($matches[1],1,1) as $path) {
 		foreach($matches[1] as $path) {
 
-			$base = "/Users/ntaylor/src/zoning/minutes/";
+			$base = "/Users/ntaylor/src/zoning/cache/minutes/";
 
-			$filename = pathinfo($path)["basename"];
-			if(!preg_match('/[a-z]+_[0-9]{1,2}_[0-9]{4}/', $filename, $dateMatch)) {
+			$this->filename = pathinfo($path)["basename"];
+			if(!preg_match('/[a-z]+_[0-9]{1,2}_[0-9]{4}/', $this->filename, $dateMatch)) {
 				continue;
 			}
 			$date = strftime("%Y-%m-%d", strtotime(str_replace('_', ' ', $dateMatch[0])));
-			if(!file_exists("$base$filename")) {
-				file_put_contents("$base$filename", file_get_contents("https://boston.gov$path"));
+			if(!file_exists("$base{$this->filename}")) {
+				file_put_contents("$base{$this->filename}", file_get_contents("https://boston.gov$path"));
 			}
-			if(!file_exists("$base$filename.html")) {
-				file_put_contents("$base$filename.html", shell_exec("pdftohtml -i -noframes -stdout $base$filename"));
+			if(!file_exists("$base{$this->filename}.html")) {
+				file_put_contents("$base{$this->filename}.html", shell_exec("pdftohtml -i -noframes -stdout $base{$this->filename}"));
 			}
-			$minutes = file_get_contents("$base$filename.html");
+			$minutes = file_get_contents("$base{$this->filename}.html");
+			
+
 			$minutes = preg_replace('/(\n[0-9]+<br>|\n<hr>|<!DOCTYPE.*?<BODY.*?>|STEPHANIE HAYNES.*)/sm', '', $minutes);
+
+			// Sections are denoted by when they start
 			$sections = preg_split('/\n([A-Za-z\-\ \/]+: [0-9]+:[0-9\.amp\ ]+)<br>/sm', $minutes, 0, PREG_SPLIT_DELIM_CAPTURE);
+			
+			// Shift off the intro section of approving minutes, etc
 			$intro = array_shift($sections);
 
 			for($i=0; $i<count($sections); $i+=2) {
@@ -78,7 +81,6 @@ class MinutesParser {
 	}
 
 	private function parseCase($caseStr) {
-		global $filename;
 		$case = [];
 		if(!preg_match('/((?:BOA|BZC)(?:-|#)\ ?[0-9]+),? ?Address: (.*?),? ?Ward:? ?([0-9]+) ?,? ?Applicant: ?(.*?)(\n.*)/sm', $caseStr, $matches)) {
 			if(!preg_match('/((?:BOA|BZC)(?:-|#)\ ?[0-9]+),? ?Address: (.*?),? ?Ward:? ?([0-9]+) ?,? ?Applicant: ?(.*)/sm', $caseStr, $matches)) {
@@ -94,10 +96,10 @@ class MinutesParser {
 
 		if(count($matches) == 5) {
 			array_push($matches, "");
-		}
-		else if (count($matches) != 6) {
+		}	else if (count($matches) != 6) {
 			throw new Exception("Problem parsing case: ".json_encode( $matches ));
 		}
+
 		list($_, $case['appeal'], $case['address'], $case['ward'], $case['applicant'], $remaining) = $matches;
 
 		if($remaining != "") {
@@ -151,80 +153,118 @@ class MinutesParser {
 		$specialCases = [
 			"BZC-33494 Address: 68 Willow Court Ward 7 Applicant: Willow Ct, LLC" =>
 				["BZC-33494", "68 Willow Court", "7", "Willow Ct, LLC"],
+
 			"BZC-33158 Address: 319-327 Chelsea Street Ward 1 Applicant: Richard Lynds, Esq" =>
 				["BZC-33158", "319-327 Chelsea Street", "1", "Richard Lynds, Esq"],
+
 			"BOA-948357Address: 303 Silver Street Ward 6 Applicant: George Morancy" =>
 				["BOA-948357", "303 Silver Street", "6", "George Morancy"],
+
 			"BOA-#929262 Address: 73-75 Maverick Square Ward 1 Applicant: OZ DBA" =>
 				["BOA-929262", "73-75 Maverick Square", "1", "OZ DBA"],
+
 			"BOA938099- Address: 105 West First Ward 6 Applicant: Eli Long" =>
 				["BOA-938099", "105 West First", "6", "Eli Long"],
+
 			"BOA-918720 Address: 95 Ellington Street Ward 14Applicant: Ronan Ryan" =>
 				["BOA-918720", "95 Ellington Street", "14", "Ronan Ryan"],
+
 			"BOA-881803 Address: 131 Condor Street Ward 1Applicant: Neighborhood of Affordable Housing," =>
 				["BOA-881803", "131 Condor Street", "1", "Neighborhood of Affordable Housing"],
+
 			"BOA-853295, Address: 31 Dell Avenue Ward:18 Applicant: Elida Sanchez" =>
 				["BOA-853295", "31 Dell Avenue", "18", "Elida Sanchez"],
+
 			"BOA-924595Address: 103-105 Newbury Street Ward 5 Applicant: Frazer 103 Holdings LP" =>
 				["BOA-924595", "103-105 Newbury Street", "5", "Frazer 103 Holdings LP"],
+
 			"BOA-524297 Address: 85 Linden Street, Ward 21Applicant: Jackson Solmiak" =>
 				["BOA-524297", "85 Linden Street", "21", "Jackson Solmiak"],
+
 			"BOA-613478, Address: 820 William T Morrissey BLVD, Ward: 16, Applicant: Outfront Media, LLC" =>
 				["BOA-613478", "820 William T Morrissey BLVD", "16", "Outfront Media, LLC"],
+
 			"BOA912336, Address: 101-103 Rosseter Street Ward: 14 Applicant: Kenneth Battle" =>
 				["BOA-912336", "101-103 Rosseter Street", "14", "Kenneth Battle"],
+
 			"BOA-524297 Address: 85 Linden Street, Ward 21Applicant: Jackson Solmiak" =>
 				["BOA-524297", "85 Linden Street", "21", "Jackson Solmiak"],
+
 			"BOA-613478, Address: 820 William T Morrissey BLVD, Ward: 16, Applicant: Outfront Media, LLC" =>
 				["BOA-613478", "820 William T Morrissey BLVD", "16", "Outfront Media, LLC"],
+
 			"BOA912336, Address: 101-103 Rosseter Street Ward: 14 Applicant: Kenneth Battle" =>
 				["BOA-912336", "101-103 Rosseter Street", "14", "Kenneth Battle"],
+
 			"BOA-907797 Address: 744-748 Dudley Street Ward 7" =>
 				["BOA-907797", "744-748 Dudley Street", "7", ""],
+
 			"BOA-824678, Address: 301-303 Corey Street Ward 20 Applicant: Michael Kelly" =>
 				["BOA-824678", "301-303 Corey Street", "20", "Michael Kelly"],
+
 			"BOA792891 Address: 111 West Street Ward 18 Applicant: Guimy Cesar" =>
 				["BOA-792891", "111 West Street", "18", "Guimy Cesar"],
+
 			"BOA879862 Address: 60-62 Mapleton Street Ward 22 Applicant: Matthew Murphy" =>
 				["BOA-879862", "60-62 Mapleton Street", "22", "Matthew Murphy"],
+
 			"BOA842247- Address: 75-77 Cedar Street , Ward 11 Applicant: Ulyen Coleman" =>
 				["BOA-842247", "75-77 Cedar Street", "11", "Ulyen Coleman"],
+
 			"BOA842247- Address: 75-77 Cedar Street , Ward 11 Applicant: Ulyen Coleman" =>
 				["BOA-842247", "75-77 Cedar Street", "11", "Ulyen Coleman"],
+
 			"BZC-30461 Address: 191 Talbot Avenue, Ward , Applicant: Derric Small, Esq" =>
 				["BZC-30461", "191 Talbot Avenue", "15", "Derric Small, Esq"],
+
 			"BOA-859199 Address:59 Blake Street , Ward 18, Applicant: Derric Small" =>
 				["BOA-859199", "59 Blake Street", "18", "Derric Small"],
+
 			"BOA-853982 Address:114 Bennington Street , Ward 1, Applicant: Michael Romano" =>
 				["BOA-853982", "114 Bennington Street", "1", "Michael Romano"],
+
 			"BOA-,810527 Address: 694 East Fifth Street Ward: 6 , Applicant: Lindsay Bennett" =>
 				["BOA-,810527", "694 East Fifth Street", "6 , ", "Lindsay Bennett"],
+
 			"BOA-808985 Address: 69-73 Almont Street, Ward 18" =>
 				["BOA-808985", "69-73 Almont Street", "18", ""],
+
 			"BOA-827186 Address: 46 Brooksdale Road, Ward 22" =>
 				["BOA-827186", "46 Brooksdale Road", "22", ""],
+
 			"BOA-812233 Address:15-17 Swallow Street Ward 6 Applicant: Brendon O'Heir" =>
 				["BOA-812233", "15-17 Swallow Street", "6 ", "Brendon O'Heir"],
+
 			"BOA-779357, Address:29-31 Ward Street , Ward 7 Applicant: 29-31 Ward Street LLC" =>
 				["BOA-779357,", "29-31 Ward Street", "7", "29-31 Ward Street LLC"],
+
 			"BOA-488299, Address:358-360 Athens Street , Ward 6 Applicant: Ann Marie Bayer," =>
 				["BOA-488299", "358-360 Athens Street", "6", "Ann Marie Bayer,"],
+
 			"BOA-812233 Address:15-17 Swallow Street Ward 6 Applicant: Brendon O'Heir" =>
 				["BOA-812233", "15-17 Swallow Street", "6", "Brendon O'Heir"],
+
 			"BOA-,803912 Address: 29 Minot Street Ward: 16 , Applicant: Linda Lombardi" =>
 				["BOA-803912", "29 Minot Street", "16", "Linda Lombardi"],
+
 			"BOA-818470 Address: 85-93 Glenville Avenue, Ward 21 Applicants: Daniel Toscano, Esq." =>
 				["BOA-818470", "85-93 Glenville Avenu", "21", "Daniel Toscano, Esq."],
+
 			"BOA-812908 Address:537A-537 Columbus Avenue , Ward 4 Applicant: Leo Papile" =>
 				["BOA-812908", "537A-537 Columbus Avenue", "4", "Leo Papile"],
+
 			"BOA-806243, Address:23-25 Bowdoin Avenue , Ward 14 Applicant: James Christopher" =>
 				["BOA-806243", "23-25 Bowdoin Avenue", "14", "James Christopher"],
+
 			"BOA-779357, Address:29-31 Ward Street , Ward 7 Applicant: 29-31 Ward Street LLC" =>
 				["BOA-779357", "29-31 Ward Street", "7", "29-31 Ward Street LLC"],
+
 			"BOA-,813658 Address: 76 White Street , Ward 1 Applicant: Smith &amp; Townsend LLC" =>
 				["BOA-813658", "76 White Street", "1", "Smith &amp; Townsend LLC"],
+
 			"BOA-805721, Address: 66 Edson Street, Ward 17" =>
 				["BOA-805721", "66 Edson Street", "17", ""],
+
 			"BOA-,787613 Address: 18 Marbury Terrace , Ward 11 Applicant: Marbury Terrace, Inc." =>
 				["BOA-787613", "18 Marbury Terrace", "11", "Marbury Terrace, Inc."]
 		];

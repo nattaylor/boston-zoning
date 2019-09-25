@@ -15,7 +15,7 @@
 class DecisionParser {
 	public function main() {
 
-		$file = file_get_contents("zoning-board-appeal-decisions");
+		$file = file_get_contents("cache/zoning-board-appeal-decisions");
 		
 		$lines = explode("\n", $file);
 
