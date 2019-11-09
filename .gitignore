@@ -1,2 +1,4 @@
-/cache/
-/dist/
+/cache/*
+/dist/*
+.sublime-project
+zoning.sublime-workspace
