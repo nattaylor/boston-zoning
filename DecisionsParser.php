@@ -123,7 +123,8 @@ class DecisionParser {
 			"BOA-640513 4 Salerno Pl, Ward 7-Granted In Part &amp;amp; Denied In Part" => ["BOA-640513", "4 Salerno Pl*", "Ward 7"],
 			"BOA-634526 3193-3201 Washington Street, 11" => ["BOA-634526", "3193-3201 Washington Street", "Ward 11"],
 			"BOA-639862 38A-38 South Russell Street" => ["BOA-639862", "38A-38 South Russell Street", "Ward 5"],
-			"BOA-830941             28 Dix Street, Ward, Ward 16" => ["BOA-830941", "28 Dix Street", "Ward 16"]
+			"BOA-830941             28 Dix Street, Ward, Ward 16" => ["BOA-830941", "28 Dix Street", "Ward 16"],
+			"BOA-979207 `           1 Elmwood Street, Ward 9" => ["BOA-979207", "1 Elmwood Street", "Ward 9"]
 		];
 		if(array_key_exists($appeal, $cases)) {
 			return $cases[$appeal];

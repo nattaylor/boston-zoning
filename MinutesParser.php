@@ -1,32 +1,34 @@
 <?php
 /**
+ * Blah
  *
  * TODO
  *  - Fix the unparseables
- *  
+ *
  * @return [type] [description]
  */
+namespace Zoning;
+
 class MinutesParser {
 	private $filename;
 	public function main() {
 		//$minutes = file_get_contents("https://www.boston.gov/departments/inspectional-services/zoning-board-appeal");
 		$minutesPage = file_get_contents("cache/zoning-board-appeal");
-		if(!preg_match_all('/href="(\/sites[^>]+\.pdf)"/sm', $minutesPage, $matches)) {
+		if (!preg_match_all('/href="(\/sites[^>]+\.pdf)"/sm', $minutesPage, $matches)) {
 		}
 		$parsedCases = [];
-		foreach($matches[1] as $path) {
-
-			$base = "/Users/ntaylor/src/zoning/cache/minutes/";
+		foreach ($matches[1] as $path) {
+			$base = "/Users/ntaylor/src/nattaylor@gmail.com/zoning/cache/minutes/";
 
 			$this->filename = pathinfo($path)["basename"];
-			if(!preg_match('/[a-z]+_[0-9]{1,2}_[0-9]{4}/', $this->filename, $dateMatch)) {
+			if (!preg_match('/[a-z]+_[0-9]{1,2}_[0-9]{4}/', $this->filename, $dateMatch)) {
 				continue;
 			}
 			$date = strftime("%Y-%m-%d", strtotime(str_replace('_', ' ', $dateMatch[0])));
-			if(!file_exists("$base{$this->filename}")) {
+			if (!file_exists("$base{$this->filename}")) {
 				file_put_contents("$base{$this->filename}", file_get_contents("https://boston.gov$path"));
 			}
-			if(!file_exists("$base{$this->filename}.html")) {
+			if (!file_exists("$base{$this->filename}.html")) {
 				file_put_contents("$base{$this->filename}.html", shell_exec("pdftohtml -i -noframes -stdout $base{$this->filename}"));
 			}
 			$minutes = file_get_contents("$base{$this->filename}.html");
@@ -40,20 +42,20 @@ class MinutesParser {
 			// Shift off the intro section of approving minutes, etc
 			$intro = array_shift($sections);
 
-			for($i=0; $i<count($sections); $i+=2) {
-
-				if(!preg_match('/(hearing|extension|gcod|discussion|code|final|recommendation|irish|interpretation)/',strtolower($sections[$i]))) {
-					throw new Exception("Problem splitting: $filename ".json_encode($sections[$i]));
+			for ($i=0; $i<count($sections); $i+=2) {
+				if (!preg_match('/(hearing|extension|gcod|discussion|code|final|recommendation|irish|interpretation|reconsideration)/', strtolower($sections[$i]))) {
+					//throw new Exception("Problem splitting: $filename ".json_encode($sections[$i]));
+					echo "Problem splitting: {$this->filename} ".json_encode($sections[$i]);
 				}
 
-				if(!preg_match('/(.*?):/', $sections[$i], $sectionLabel)) {
+				if (!preg_match('/(.*?):/', $sections[$i], $sectionLabel)) {
 				}
 
 				$cases = preg_split('/(?:^|\n)Case: /sm', trim(strip_tags($sections[$i+1])));
 				array_shift($cases);
 
 				
-				foreach($cases as $case) {
+				foreach ($cases as $case) {
 					/*
 					preg_match_all('/\n([A-Z][^:\ ]+:)/sm', $case, $matches);
 					foreach($matches[1] as $match) {
@@ -74,18 +76,22 @@ class MinutesParser {
 				}
 			}
 		}
-		$parsedCases = array_filter($parsedCases, function($case) {return strlen(json_encode( $case )) > 0;});
-		return "[".implode(",".PHP_EOL, array_map(function($case) {return json_encode( array_map(function($case1){return rtrim(str_replace(["`", "\n", "\"", " ", "\\"], " ", $case1),"\\");}, $case) );}, $parsedCases))."]";
-		//checkCases($parsedCases);
-		//findParcels($parsedCases);
+		$parsedCases = array_filter($parsedCases, function ($case) {
+			return strlen(json_encode($case)) > 0;
+		});
+		return "[".implode(",".PHP_EOL, array_map(function ($case) {
+			return json_encode(array_map(function ($case1) {
+				return rtrim(str_replace(["`", "\n", "\"", " ", "\\"], " ", $case1), "\\");
+			}, $case));
+		}, $parsedCases))."]";
 	}
 
 	private function parseCase($caseStr) {
 		$case = [];
-		if(!preg_match('/((?:BOA|BZC)(?:-|#)\ ?[0-9]+),? ?Address: (.*?),? ?Ward:? ?([0-9]+) ?,? ?Applicant: ?(.*?)(\n.*)/sm', $caseStr, $matches)) {
-			if(!preg_match('/((?:BOA|BZC)(?:-|#)\ ?[0-9]+),? ?Address: (.*?),? ?Ward:? ?([0-9]+) ?,? ?Applicant: ?(.*)/sm', $caseStr, $matches)) {
+		if (!preg_match('/((?:BOA|BZC)(?:-|#)\ ?[0-9]+),? ?Address: (.*?),? ?Ward:? ?([0-9]+) ?,? ?Applicant: ?(.*?)(\n.*)/sm', $caseStr, $matches)) {
+			if (!preg_match('/((?:BOA|BZC)(?:-|#)\ ?[0-9]+),? ?Address: (.*?),? ?Ward:? ?([0-9]+) ?,? ?Applicant: ?(.*)/sm', $caseStr, $matches)) {
 				$matches = $this->specialCases($caseStr);
-				if(!$matches || !preg_match('/(BOA|BZC)/',$matches[1])) {
+				if (!$matches || !preg_match('/(BOA|BZC)/', $matches[1])) {
 					//"first line bad: ".
 					//var_dump("$filename $caseStr");
 					throw new Exception(explode("\n", $caseStr)[0]);
@@ -94,20 +100,20 @@ class MinutesParser {
 			}
 		}
 
-		if(count($matches) == 5) {
+		if (count($matches) == 5) {
 			array_push($matches, "");
-		}	else if (count($matches) != 6) {
-			throw new Exception("Problem parsing case: ".json_encode( $matches ));
+		}	elseif (count($matches) != 6) {
+			throw new Exception("Problem parsing case: ".json_encode($matches));
 		}
 
 		list($_, $case['appeal'], $case['address'], $case['ward'], $case['applicant'], $remaining) = $matches;
 
-		if($remaining != "") {
+		if ($remaining != "") {
 			$caseParts = preg_split('/\n(Purpose|Article\(s\)|Discussion|Votes|Documents\/Exhibits|Testimony|Discussion|Vote):/sm', $remaining, 0, PREG_SPLIT_DELIM_CAPTURE);
 			
 			array_shift($caseParts);
 			
-			for($i=0; $i<count($caseParts);$i+=2) {
+			for ($i=0; $i<count($caseParts); $i+=2) {
 				$labelMap = [
 					"Purpose" => "purpose",
 					"Article(s)" => "articles",
@@ -115,38 +121,36 @@ class MinutesParser {
 					"Votes" => "vote",
 					"Documents/Exhibits" => "documents",
 					"Testimony" => "testimony",
-					"Discussion" => "discussion",
 					"Vote" => "vote"
 				];
 				$case[$labelMap[$caseParts[$i]]] = trim(str_replace("\n", " ", $caseParts[$i+1]));
 			}
 			// TODO articles parser
-			if(isset($case['vote'])) {
+			if (isset($case['vote'])) {
 				$case['status'] = $this->inferStatus($case["vote"]);
-			} else if(isset($case['discussion'])) {
+			} else if (isset($case['discussion'])) {
 				$case['status'] = $this->inferStatus($case["discussion"]);
 			} else {
 				$case['status'] = 'NOVOTE';
 			}
 
-			$case['appeal'] = preg_replace('/(BOA- ?,?|BOA# ?)/','BOA-',$case['appeal']);
+			$case['appeal'] = preg_replace('/(BOA- ?,?|BOA# ?)/', 'BOA-', $case['appeal']);
 		}
 		return $case;
 	}
 
 	private function inferStatus($vote) {
-		$vote = strtolower(preg_replace("/\n/",' ',$vote));
-		if(strpos($vote, "voted unanimously to approve") || strpos($vote, "voted to approve")) {
+		$vote = strtolower(preg_replace("/\n/", ' ', $vote));
+		if (strpos($vote, "voted unanimously to approve") || strpos($vote, "voted to approve")) {
 			return "APPROVED";
-		} else if(strpos($vote, "voted unanimously to deny") || strpos($vote, "appeal was denied") || strpos($vote, "relief was denied") || strpos($vote, "appeals were denied")|| strpos($vote, "denied")) {
+		} elseif (strpos($vote, "voted unanimously to deny") || strpos($vote, "appeal was denied") || strpos($vote, "relief was denied") || strpos($vote, "appeals were denied")|| strpos($vote, "denied")) {
 			return "DENIED";
-		} else if(strpos($vote, "dismiss without prejudice") || strpos($vote, "dismissed without prejudice") || strpos($vote, "dismiss the appeal without prejudice")) {
+		} elseif (strpos($vote, "dismiss without prejudice") || strpos($vote, "dismissed without prejudice") || strpos($vote, "dismiss the appeal without prejudice")) {
 			return "DISMISSED";
-		} else if(strpos($vote, "deferred") || strpos($vote, "defer")) {
+		} elseif (strpos($vote, "deferred") || strpos($vote, "defer")) {
 			return "DEFERRED";
-		} else {
-			return False;
 		}
+		return false;
 	}
 
 	private function specialCases($caseStr) {
@@ -272,19 +276,19 @@ class MinutesParser {
 		$first = $split[0];
 		$remaining = $split[1] ?? "";
 
-		if(array_key_exists($first, $specialCases)) {
+		if (array_key_exists($first, $specialCases)) {
 			return array_merge([""], $specialCases[$first], [$remaining]);
 		} else {
-			return False;
+			return false;
 		}
 	}
 
 	private function checkCases($cases) {
-		foreach($cases as $case) {
-			if(!preg_match('/^(?:BOA|BZC)-[0-9]+/',$case['appeal'])) {
+		foreach ($cases as $case) {
+			if (!preg_match('/^(?:BOA|BZC)-[0-9]+/', $case['appeal'])) {
 				echo $case["date"]." ".$case['appeal']." ".json_encode($case).PHP_EOL;
 			}
-			if(!isset($case['status']) || strlen($case['status'])==0) {
+			if (!isset($case['status']) || strlen($case['status'])==0) {
 				//echo json_encode($case).PHP_EOL;
 			}
 		}
@@ -292,7 +296,7 @@ class MinutesParser {
 
 	/**
 	 * @todo east west
-	 * 
+	 *
 	 * @param  [type] $parsedCases [description]
 	 * @return [type]              [description]
 	 */
@@ -324,7 +328,7 @@ class MinutesParser {
 			*/
 		]);
 		$revAbbr = [];
-		foreach([
+		foreach ([
 			'ST' => 'street',
 			'AV' => 'avenue',
 			'RD' => 'road',
@@ -349,11 +353,11 @@ class MinutesParser {
 			'RD' => '',
 			'FW' => ''
 			*/
-		] as $k=>$v) {
+		] as $k => $v) {
 			$revAbbr[$v] = strtolower($k);
 		}
 		$parcels = Parcels::load('fy19fullpropassess.csv');
-		foreach($parsedCases as $case) {
+		foreach ($parsedCases as $case) {
 			//echo "Searching for {$case['address']}".PHP_EOL;
 			list($stNum, $remaining) = explode(" ", $case["address"], 2);
 			$split = preg_split('/ (street|avenue|road|place|terrace|park|square|court|drive|way|highway|plaza|lane)$/', strtolower($remaining), 0, PREG_SPLIT_DELIM_CAPTURE);
@@ -363,29 +367,27 @@ class MinutesParser {
 			
 			
 
-			$parcelId = False;
+			$parcelId = false;
 			$key = implode(" ", [$stNum, $stName, $revAbbr[$stSuf] ?? '']);
-			if(array_key_exists($key,$parcels)) {
+			if (array_key_exists($key, $parcels)) {
 				$parcelId = $parcels[$key];
 			}
 			/*
 			foreach($parcels as $parcel) {
 				//echo var_dump($parcel, [$stNum, $stName, $revAbbr[$stSuf]]);
-				if($parcel[1] == $stNum && $parcel[2] == $stName && $parcel[3] == $revAbbr[$stSuf]) {
+				if ($parcel[1] == $stNum && $parcel[2] == $stName && $parcel[3] == $revAbbr[$stSuf]) {
 					$parcelId = $parcel;
 					//echo var_dump($parcel, [$stNum, $stName, $stSuf]);
 				} else {
 
 				}
-	 		}
-	 		*/
-	 		if(!$parcelId) {
-	 			echo "No match for {$case['address']} with key: $key".PHP_EOL;
-	 		} else {
-	 			//echo "Found $parcelId for {$case['address']}".PHP_EOL;
-	 		}
-
+			}
+			*/
+			if (!$parcelId) {
+				echo "No match for {$case['address']} with key: $key".PHP_EOL;
+			} else {
+				//echo "Found $parcelId for {$case['address']}".PHP_EOL;
+			}
 		}
-		
 	}
 }

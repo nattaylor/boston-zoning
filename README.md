@@ -3,8 +3,13 @@
 Enhance Boston Zoning decisions with structure and additional data
 
 TODO
+ - CRON to check for updates
+ - Pass build directory to build script
  - Do decisions full outer join minutes
  - Finish downloads
+ - Add search
+ - Add (chain) icon for deeplinking
+ - "View on the web"
  - Full address (ward to zip, ward to neighborhood, zip to neighborhood)
  - UI: change to panels
  - New property: Link to minutes
@@ -25,3 +30,13 @@ Webapp
 - Filter by type (e.g. show all extensions)
 - Check for dependencies (pdftohtml)
 - "Views" functionality with filtering and such
+
+
+## Refresh Process
+
+```
+cd cache && wget 'https://www.boston.gov/departments/inspectional-services/zoning-board-appeal-decisions'
+php build.php
+scp -P 4452 dist/decesions_* taylorwe@taylorwebdesignshost.com:~/www/nattaylor.com/eastboston/boston-zoning
+vi ~/www/nattaylor.com/.htaccess
+```
