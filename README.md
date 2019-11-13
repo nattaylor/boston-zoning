@@ -7,7 +7,6 @@ TODO
  - CRON to check for updates --> view-source:https://www.boston.gov/departments/inspectional-services/zoning-board-appeal --> `<div class="brc-lu">      Last updated:   <span class="date-display-single" property="dc:date" datatype="xsd:dateTime" content="2019-11-12T14:45:00-05:00">11/12/19</span>    </div>`  --> send email if that's today
  - Feature: Finish lookup-variances.json https://docs.google.com/spreadsheets/d/1o0yVtxE9DFupkGMdXybgTgIXH1XvWGJUZ3Do3G7XLyc/edit#gid=0
  - Refactor: Add code comments
- - Refactor: specialCases to lookup-cases.json
  - Manually convert old minutes ☹️
  - Bug: Fix BOA-678322
  - Feature: clean by implementing html_entity_decode
@@ -29,6 +28,7 @@ TODO
  - ~Fix addresses with commas~
  - ~New field: normalized applicants (remove ", Esq" etc)~
  - ~Do decisions full outer join minutes~ No, they are the same
+ - ~Refactor: specialCases to lookup-cases.json~
 
 Web UI
 - UI: navbar
