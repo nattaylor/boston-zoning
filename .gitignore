@@ -2,3 +2,4 @@ cache/
 dist/
 .sublime-project
 zoning.sublime-workspace
+.DS_Store

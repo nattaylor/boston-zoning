@@ -3,19 +3,19 @@
 Enhance Boston Zoning decisions with structure and additional data
 
 TODO
+ - Fix BOA-678322
+ - Implement html_entity_decode
+ - New property: Link to minutes
+ - New property: Link to Boston City TV (https://www.youtube.com/user/BostonCable/search?query=zoning) and (https://www.cityofboston.gov/cable/video_library.asp)
+ - New property: Link to ParcelViewer (join on address to the permits to get parcelid) ()
  - CRON to check for updates
  - Pass build directory to build script
  - Do decisions full outer join minutes
- - Finish downloads
  - Add search
  - Add (chain) icon for deeplinking
  - "View on the web"
  - Full address (ward to zip, ward to neighborhood, zip to neighborhood)
  - UI: change to panels
- - New property: Link to minutes
- - New property: parse articles
- - New property: Link to Boston City TV (https://www.youtube.com/user/BostonCable/search?query=zoning) and (https://www.cityofboston.gov/cable/video_library.asp)
- - New property: Link to ParcelViewer (join on address to the permits to get parcelid) ()
  - Store into database
  - Error checking!
  - Create a dashboard of parsing successfes/failure / test cases!
@@ -24,6 +24,11 @@ TODO
  - ~Use #hash link methodology~
  - ~Write "About"~
  - ~Build script~
+ - ~Finish downloads~
+ - ~New property: parse articles~
+ - ~Normalize types (extension/EXTENSION etc)~
+ - ~Fix addresses with commas~
+ - ~New field: normalized applicants (remove ", Esq" etc)~
 
 Webapp
 - UI: navbar
@@ -35,7 +40,7 @@ Webapp
 ## Refresh Process
 
 ```
-cd cache && wget 'https://www.boston.gov/departments/inspectional-services/zoning-board-appeal-decisions'
+cd cache && rm zoning-board-appeal-decisions && wget 'https://www.boston.gov/departments/inspectional-services/zoning-board-appeal-decisions'
 php build.php
 scp -P 4452 dist/decesions_* taylorwe@taylorwebdesignshost.com:~/www/nattaylor.com/eastboston/boston-zoning
 vi ~/www/nattaylor.com/.htaccess

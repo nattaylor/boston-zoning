@@ -1,11 +1,9 @@
 <?php
 /**
- * Blah
+ * Minutes are PDFs made up of sections delimeted by certain patterns
+ * HTML is easier to work with than PDF, so convert them.
  *
- * TODO
- *  - Fix the unparseables
  *
- * @return [type] [description]
  */
 namespace Zoning;
 
@@ -17,6 +15,7 @@ class MinutesParser {
 		if (!preg_match_all('/href="(\/sites[^>]+\.pdf)"/sm', $minutesPage, $matches)) {
 		}
 		$parsedCases = [];
+		
 		foreach ($matches[1] as $path) {
 			$base = "/Users/ntaylor/src/nattaylor@gmail.com/zoning/cache/minutes/";
 
@@ -25,6 +24,7 @@ class MinutesParser {
 				continue;
 			}
 			$date = strftime("%Y-%m-%d", strtotime(str_replace('_', ' ', $dateMatch[0])));
+
 			if (!file_exists("$base{$this->filename}")) {
 				file_put_contents("$base{$this->filename}", file_get_contents("https://boston.gov$path"));
 			}
@@ -32,7 +32,6 @@ class MinutesParser {
 				file_put_contents("$base{$this->filename}.html", shell_exec("pdftohtml -i -noframes -stdout $base{$this->filename}"));
 			}
 			$minutes = file_get_contents("$base{$this->filename}.html");
-			
 
 			$minutes = preg_replace('/(\n[0-9]+<br>|\n<hr>|<!DOCTYPE.*?<BODY.*?>|STEPHANIE HAYNES.*)/sm', '', $minutes);
 
@@ -65,7 +64,7 @@ class MinutesParser {
 					try {
 						$parsedCase = $this->parseCase($case);
 						$parsedCase["date"] = $date;
-						$parsedCase["type"] = $sectionLabel[1];
+						$parsedCase["type"] = $this->normalizeType($sectionLabel[1]);
 						//$parsedCase["casestr"] = $case;
 						//echo json_encode( $parsedCase ).PHP_EOL;
 					} catch (Exception $e) {
@@ -79,11 +78,18 @@ class MinutesParser {
 		$parsedCases = array_filter($parsedCases, function ($case) {
 			return strlen(json_encode($case)) > 0;
 		});
+		$arrayCases = [];
+		foreach($parsedCases as $key=>$case) {
+			array_push($arrayCases, $case);
+		}
+		return Json_encode($arrayCases, JSON_PRETTY_PRINT);
+		/*
 		return "[".implode(",".PHP_EOL, array_map(function ($case) {
 			return json_encode(array_map(function ($case1) {
 				return rtrim(str_replace(["`", "\n", "\"", " ", "\\"], " ", $case1), "\\");
 			}, $case));
 		}, $parsedCases))."]";
+		*/
 	}
 
 	private function parseCase($caseStr) {
@@ -99,10 +105,11 @@ class MinutesParser {
 				}
 			}
 		}
+		//echo explode("\n", $caseStr)[0]." --> ".implode(" | ", array_slice($matches, 1, -1)).PHP_EOL;
 
 		if (count($matches) == 5) {
 			array_push($matches, "");
-		}	elseif (count($matches) != 6) {
+		}	else if (count($matches) != 6) {
 			throw new Exception("Problem parsing case: ".json_encode($matches));
 		}
 
@@ -125,7 +132,7 @@ class MinutesParser {
 				];
 				$case[$labelMap[$caseParts[$i]]] = trim(str_replace("\n", " ", $caseParts[$i+1]));
 			}
-			// TODO articles parser
+
 			if (isset($case['vote'])) {
 				$case['status'] = $this->inferStatus($case["vote"]);
 			} else if (isset($case['discussion'])) {
@@ -135,6 +142,24 @@ class MinutesParser {
 			}
 
 			$case['appeal'] = preg_replace('/(BOA- ?,?|BOA# ?)/', 'BOA-', $case['appeal']);
+			
+			if (isset($case['articles'])) {
+				$case['articles'] = $this->parseArticles($case['articles']);
+			}
+
+			if (isset($case['applicant'])) {
+				$case['applicant'] = $this->normalizeApplicant($case['applicant']);
+			}
+
+			if (isset($case['address'])) {
+				$case['address'] = trim($case['address']);
+				$parcel = $this->lookupParcel($case['address']);
+				if($parcel) {
+					$case['parcel']=$parcel;
+				}
+			}
+
+
 		}
 		return $case;
 	}
@@ -151,6 +176,52 @@ class MinutesParser {
 			return "DEFERRED";
 		}
 		return false;
+	}
+
+	private function parseArticles($articles) {
+		if (!preg_match_all('/([0-9]+\(.*?)(?:\) |\)\n|\)$)/', $articles, $matches)) {
+			//
+		}
+		$cleanedMatches = [];
+		foreach ($matches[0] as $article) {
+			$key = trim($article);
+			$variances = [];
+			if (preg_match('/([0-9]+\([0-9\-\.]+): (.*?\))/', $article, $matches2)) {
+				$key = $matches2[1].")";
+
+				$variances = array_map(function ($variance) {
+					if (substr_count($variance, ")") > substr_count($variance, "(")) {
+						$variance = preg_replace('/\)$/', '', $variance);
+					}
+					return $variance;
+				}, preg_split('/(?:, | &amp; )/', $matches2[2]));
+			}
+			$cleanedMatches[$key] = $variances;
+		}
+		return $cleanedMatches;
+	}
+
+	private function normalizeType($type) {
+		$searches = [
+			"/^(?:EXTENSIONS|Extensions|Extension|EXTENSION)$/",
+			"/^(?:HEARINGS|HEARING)$/"
+		];
+		$replacements = [
+			"EXTENSION",
+			"HEARING"
+		];
+		return preg_replace($searches, $replacements, $type);
+	}
+
+	private function normalizeApplicant($applicant) {
+		$applicant = preg_replace('/(?:, Esq\.?$| for$)/', '', $applicant);
+		$lookupApplicants = json_decode(file_get_contents('lookup-applicants.json'));
+		return $lookupApplicants->{$applicant} ?? $applicant;
+	}
+
+	private function lookupParcel($address) {
+		$lookupParcels = json_decode(file_get_contents('lookup-parcels.json'));
+		return $lookupParcels->$address ?? false;
 	}
 
 	private function specialCases($caseStr) {
