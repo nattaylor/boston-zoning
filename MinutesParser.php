@@ -154,7 +154,7 @@ class MinutesParser {
 			if (isset($case['address'])) {
 				$case['address'] = trim($case['address']);
 				$parcel = $this->lookupParcel($case['address']);
-				if($parcel) {
+				if ($parcel) {
 					$case['parcel']=$parcel;
 				}
 			}
@@ -186,7 +186,7 @@ class MinutesParser {
 		foreach ($matches[0] as $article) {
 			$key = trim($article);
 			$variances = [];
-			if (preg_match('/([0-9]+\([0-9\-\.]+): (.*?\))/', $article, $matches2)) {
+			if (preg_match('/([0-9]+\([0-9\-\.]+): ?(.*?\))/', $article, $matches2)) {
 				$key = $matches2[1].")";
 
 				$variances = array_map(function ($variance) {
