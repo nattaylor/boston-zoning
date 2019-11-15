@@ -1,5 +1,5 @@
 <?php
-ini_set('memory_limit','256M');
+ini_set('memory_limit', '256M');
 function writeParcels() {
 	$parcels = [];
 	$handle = fopen("cache/slim.csv", "r");
