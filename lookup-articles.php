@@ -1,15 +1,12 @@
 <?php
 /**
-https://api.municode.com/codesToc?jobId=351833&productId=15398
-https://api.municode.com/CodesContent?jobId=351833&nodeId=PRONZOCOBOMA&productId=15398
-https://api.municode.com/codesToc/children?jobId=351833&nodeId=ART53EABONEDI&productId=15398
-
-.Children[].Id
-.Docs[].Title //Section 53-1. - Statement of Purpose, Goals, and Objectives.
+ * Generate a JSON lookup file of article codes to article descripions
+ *  - https://api.municode.com/codesToc?jobId=351833&productId=15398 → .Children[].Id //ARTICLE 3 - SOMETHING
+ *  - https://api.municode.com/CodesContent?jobId=351833&nodeId=PRONZOCOBOMA&productId=15398 → .Docs[].Title //Section 53-1. - Statement of Purpose, Goals, and Objectives.
+ *  - https://api.municode.com/codesToc/children?jobId=351833&nodeId=ART53EABONEDI&productId=15398
 */
 function retrieve() {
 	$articlesToMatch = "/ARTICLE (?:3|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|23|24|25|29|32|33|39|41|43|44|45|46|48|49|50|51|52|53|54|55|56|57|59|60|61|62|63|64|65|66|67|68|69|80|86|1065|651|659) /";
-	//$articlesToMatch = "/ARTICLE (?:3) /";
 
 	$toc = json_decode(file_get_contents('https://api.municode.com/codesToc?jobId=351833&productId=15398'));
 

@@ -133,10 +133,12 @@ class MinutesParser {
 				$case[$labelMap[$caseParts[$i]]] = trim(str_replace("\n", " ", $caseParts[$i+1]));
 			}
 
-			if (isset($case['vote'])) {
-				$case['status'] = $this->inferStatus($case["vote"]);
+			if (isset($case['vote']) && isset($case['discussion'])) {
+				$case['status'] = $this->inferStatus($case["vote"], $case["discussion"]);
+			} else if (isset($case['vote'])) {
+				$case['status'] = $this->inferStatus($case["vote"], "");
 			} else if (isset($case['discussion'])) {
-				$case['status'] = $this->inferStatus($case["discussion"]);
+				$case['status'] = $this->inferStatus("", $case["discussion"]);
 			} else {
 				$case['status'] = 'NOVOTE';
 			}
@@ -164,9 +166,17 @@ class MinutesParser {
 		return $case;
 	}
 
-	private function inferStatus($vote) {
+	private function inferStatus($vote, $discussion) {
 		$vote = strtolower(preg_replace("/\n/", ' ', $vote));
-		if (strpos($vote, "voted unanimously to approve") || strpos($vote, "voted to approve")) {
+		if (preg_match('/(?:At the request of the applicant this case has been deferred|The applicant requested a deferral of the hearing|The applicant requested that his hearing be deferred)/i', $discussion)) {
+			if (preg_match('/(?:voted unanimously to approve|voted to approve)/', $vote)) {
+				return "DEFERRED";
+			}
+		}
+
+		$vote = $vote.$discussion;
+
+		if (strpos($vote, "voted unanimously to approve") || strpos($vote, "voted to approve") || strpos($vote, "voted unanimously to support")) {
 			return "APPROVED";
 		} elseif (strpos($vote, "voted unanimously to deny") || strpos($vote, "appeal was denied") || strpos($vote, "relief was denied") || strpos($vote, "appeals were denied")|| strpos($vote, "denied")) {
 			return "DENIED";

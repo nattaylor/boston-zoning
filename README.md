@@ -3,11 +3,11 @@
 Enhance Boston Zoning decisions with structure and additional data
 
 TODO
- - Bug: check for deferral in the discussion
  - Refactor: Add code comments
  - Manually convert old minutes ☹️
  - Bug: Fix BOA-678322
  - Feature: clean by implementing html_entity_decode
+ - Refactor: lookup-applicants should skip existing and auto generate the list
  - New property: Link to Boston City TV (https://www.youtube.com/user/BostonCable/search?query=zoning) and (https://www.cityofboston.gov/cable/video_library.asp)
  - Build: List the results of parsing successfes/failure / test cases!
  - Build: Pass build directory to build script
@@ -29,6 +29,7 @@ TODO
  - ~New property: Link to minutes~ we should construct this from the hearing date
  - ~CRON to check for updates~
  - ~Feature: Finish lookup-variances.json~
+ - ~Bug: check for deferral in the discussion~
 
 Web UI
 - Deeplink to parcel viewer

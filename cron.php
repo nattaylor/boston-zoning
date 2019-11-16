@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Check if the ZBA Minutes page has been modified in the last day and send an email notification
+ * @return void
+ */
 function check() {
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, "https://www.boston.gov/departments/inspectional-services/zoning-board-appeal");

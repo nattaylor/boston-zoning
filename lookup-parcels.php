@@ -1,17 +1,26 @@
 <?php
+/**
+ * Generate a JSON lookup keyed on Case Address pointing to the GIS Parcel ID
+ *
+ * Uses the assessing data and then a series of increasingly general joins
+ */
 ini_set('memory_limit', '256M');
-function writeParcels() {
+/**
+ * Write an indexed version of the assessing data
+ *
+ * The goal is to speed up lookups in `parcelJoin()`
+ *
+ * Generate slim.csv `cut -d$',' -f1-9 cache/fy19fullpropassess.csv`
+ *
+ * @return void
+ */
+function writeSlimParcels() {
 	$parcels = [];
 	$handle = fopen("cache/slim.csv", "r");
 	$n = 0;
 	while (($data = fgetcsv($handle)) !== false) {
-		//echo "Reading line ".implode(",", $data).PHP_EOL;
 		$n++;
-		if (strtolower($data[4]) == 'back') {
-			//var_dump($data);
-		}
 		if (!isset($parcels[strtolower($data[4])])) {
-			//echo "adding key ".strtolower($data[4]).PHP_EOL;
 			$parcels[strtolower($data[4])] = [];
 		}
 		array_push($parcels[strtolower($data[4])], $data);
@@ -30,12 +39,15 @@ function parcelJoin() {
 	$n = 0;
 	foreach ($cases as $case) {
 		//$n++; if($n>100) break;
+		//TODO Combine these to regexs
 		if (!preg_match('/^(?<st_num>.*?)\ (?<st_name>.*?)\ (?<st_name_suf>[a-z]+(?: ?,)?)$/', trim(strtolower($case->address)), $address)) {
 			if (!preg_match('/^(?<st_num>.*?)\ (?<st_name>.*?)$/', trim(strtolower($case->address)), $address)) {
 			} else {
 				$address['st_name_suf'] = '';
 			}
 		}
+
+		//TODO Make this into a `preg_replace` with arrays
 		$street = str_replace("west ", "w ", $address['st_name']);
 		$street = str_replace("east ", "e ", $street);
 		if (!isset($parcels[$street])) {
@@ -87,42 +99,7 @@ function parcelJoin() {
 				return array_merge($matchingParcels["levenshtein"], ["levenshtein"]);
 			}
 		};
-		/*
-		$matchingParcels = array_filter($parcels[$street], function ($parcel) use ($address) {
-			return $address['st_num'] == $parcel[3];
-		});
-		if (count($matchingParcels)>1) {
-			$matchingParcels = array_filter($matchingParcels, function ($parcel) use ($address) {
-				return '' == $parcel[6];
-			});
-		} else if (count($matchingParcels) == 0) {
-
-			$matchingParcels = array_filter($parcels[$street], function ($parcel) use ($address) {
-				// Split the case address
-				var_dump(preg_split('/[0-9]+/', $address['st_num'], -1, PREG_SPLIT_DELIM_CAPTURE));
-				$caseAddress = preg_split('/[0-9]+/', $address['st_num'], -1, PREG_SPLIT_DELIM_CAPTURE)[0];
-				// Split the parcel address
-				$parcelAddress = preg_split('/[0-9]+/', $parcel[3], -1, PREG_SPLIT_DELIM_CAPTURE)[0];
-				echo $caseAddress . " " . $parcelAddress.PHP_EOL;
-				if ($address['st_name'] == 'brimmer') {
-					//
-				}
-				return $caseAddress == $parcelAddress;
-			});
-		}
-		//printf("Found %s matching parcels".PHP_EOL, count($matchingParcels));
-		if (count($matchingParcels) == 1) {
-			//echo $case->address." ".implode(",", array_pop(array_reverse($matchingParcels))).PHP_EOL;
-		} else if (count($matchingParcels) > 1) {
-			/*
-			echo $case->address.PHP_EOL;
-			foreach ($matchingParcels as $match) {
-				echo "     ".implode(", ", $match).PHP_EOL;
-			}
-		} else if (count($matchingParcels) == 0) {
-			//echo $case->address.PHP_EOL;
-		}
-		*/
+		
 		$matchingParcel = $findMatchingParcels($parcels[$street], $address);
 		/*if($matchingParcel[8] == 'levenshtein') {
 			printf("levenshtein match %s to %s\n", $case->address, implode(" ", [$matchingParcel[3],$matchingParcel[4]]));
@@ -130,7 +107,6 @@ function parcelJoin() {
 		if($matchingParcel[8] == 'exact') {
 			$results[$case->address] = $matchingParcel[0];
 		}
-		
 	}
 	echo json_encode($results, JSON_PRETTY_PRINT);
 }

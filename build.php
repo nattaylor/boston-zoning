@@ -1,4 +1,7 @@
 <?php
+/**
+ * Build and write decisions and cases
+ */
 include('DecisionsParser.php');
 include('MinutesParser.php');
 

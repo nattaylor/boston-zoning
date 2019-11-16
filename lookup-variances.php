@@ -1,10 +1,10 @@
 <?php
 
-//php adhoc-variances.php | sort -n | uniq -c | sort -nr | head -n50
 /**
- * TODO: map variances into heirachy
+ * Join case variance codes to the descriptions of the articles
+ *
+ * Usage: php adhoc-variances.php | sort -n | uniq -c | sort -nr | head -n50
  */
-
 $cases = json_decode(file_get_contents('dist/cases_20191112.json'));
 $lookupVariances = json_decode(file_get_contents('lookup-variances.json'));
 $lookupArticles = json_decode(file_get_contents('lookup-articles.json'));

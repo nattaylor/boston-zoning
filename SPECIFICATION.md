@@ -1,4 +1,6 @@
-# Zoning Appeal Archive Specification
+# Boston Zoning Appeal Archive Specification
+
+Version 1.0 2019-11-14
 
 ## Section 1: Introduction
 
@@ -7,7 +9,7 @@ for a different, more structure dataformat that would enable analysis, so this
 specification was developed to support that use case.
 
 This specification is currently implemented by Nat Taylor <nattaylor@gmail.com>
-and available on the web at https://nattaylor.com/eastboston/boston-zoning
+and available on the web at [https://nattaylor.com/eastboston/boston-zoning](https://nattaylor.com/eastboston/boston-zoning)
 
 ## Section 2: Methodology
 
