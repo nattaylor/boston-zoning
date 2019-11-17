@@ -10,7 +10,7 @@ namespace Zoning;
 class MinutesParser {
 	private $filename;
 	public function main() {
-		//$minutes = file_get_contents("https://www.boston.gov/departments/inspectional-services/zoning-board-appeal");
+		//https://www.boston.gov/departments/inspectional-services/zoning-board-appeal
 		$minutesPage = file_get_contents("cache/zoning-board-appeal");
 		if (!preg_match_all('/href="(\/sites[^>]+\.pdf)"/sm', $minutesPage, $matches)) {
 		}
@@ -82,6 +82,8 @@ class MinutesParser {
 		foreach($parsedCases as $key=>$case) {
 			array_push($arrayCases, $case);
 		}
+		$ocrCases = json_decode(file_get_contents('cache/ocr-cases.json'));
+		$arrayCases = array_merge($arrayCases, $ocrCases);
 		return Json_encode($arrayCases, JSON_PRETTY_PRINT);
 		/*
 		return "[".implode(",".PHP_EOL, array_map(function ($case) {

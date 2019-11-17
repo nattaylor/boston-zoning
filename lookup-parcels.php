@@ -36,6 +36,7 @@ function parcelJoin() {
 	$results = [];
 	$parcels = unserialize(file_get_contents("cache/slim.txt"));
 	$cases = json_decode(file_get_contents("dist/cases_20191112.json"));
+	//$cases = json_decode(file_get_contents("/tmp/foo.json"));
 	$n = 0;
 	foreach ($cases as $case) {
 		//$n++; if($n>100) break;
